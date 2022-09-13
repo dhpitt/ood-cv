@@ -30,7 +30,7 @@ LOAD_FILE_NAME="saved_model_%s_799.pth"
 SAVE_FEATURE_NAME="saved_feature_%s_%s.npz"
 
 # Feature extraction
-BATCH_SIZE=8
+BATCH_SIZE=108
 
 # Pose optimization
 LEARNING_RATE=0.05
