@@ -10,16 +10,17 @@ import argparse
 global args
 parser = argparse.ArgumentParser(description='Create Cuboids')
 
-parser.add_argument('--CAD_path', default='../data/PASCAL3D+_release1.1', type=str)
+parser.add_argument('--CAD_path', default='../data/ROBINv1.1', type=str)
 parser.add_argument('--mesh_d', default='single', type=str)
 parser.add_argument('--number_vertices', default=1000, type=int)
 
 args = parser.parse_args()
 
-cates = ['aeroplane', 'bicycle', 'boat', 'bottle', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train', 'tvmonitor']
+cates = ['aeroplane', 'bicycle', 'boat', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train']
 
-mesh_path = args.CAD_path + '/CAD/%s'
-target_path = args.CAD_path + '/CAD_%s/%s' % (args.mesh_d, '%s')
+#cates = [c + '.mat' for c in cate_names]
+mesh_path = args.CAD_path + 'CAD/%s'
+target_path = args.CAD_path + 'CAD_%s/%s' % (args.mesh_d, '%s')
 
 if args.mesh_d == 'multi':
     multi_ = True
@@ -137,12 +138,14 @@ if __name__ == '__main__':
             # print('cate:', cate)
             os.makedirs(target_path % cate, exist_ok=True)
             f_names = os.listdir(mesh_path % cate)
+            print(f_names)
             f_names = [t for t in f_names if len(t) < 7 and '.off' in t]
-
+            #print(f_names)
             vertices = []
 
             for f_name in f_names:
-                vertices_, faces = load_off(os.path.join(   % cate, f_name))
+                #vertices_, faces = load_off(os.path.join(cate, f_name))
+                vertices_, faces = load_off(os.path.join(mesh_path % cate, f_name))
                 vertices.append(vertices_)
 
             vertices = np.concatenate(vertices, axis=0)

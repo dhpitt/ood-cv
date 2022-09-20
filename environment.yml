@@ -84,4 +84,3 @@ dependencies:
   - yaml=0.2.5=h7f98852_2
   - zlib=1.2.12=h5eee18b_3
   - zstd=1.5.0=ha95c52a_0
-prefix: /research/cwloka/miniconda3/envs/oodcv

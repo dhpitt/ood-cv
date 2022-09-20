@@ -27,7 +27,7 @@ args = parser.parse_args()
 args.overwrite = args.overwrite == 'True'
 
 # Parameters
-categories = ['aeroplane', 'bicycle', 'boat', 'bottle', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train', 'tvmonitor']
+categories = ['aeroplane', 'bicycle', 'boat', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train']
 
 dataset = 'imagenet'
 set_types = (['train'] if len(args.save_path_train) > 0 else []) + (['val'] if len(args.save_path_val) > 0 else [])

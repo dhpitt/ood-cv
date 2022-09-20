@@ -7,7 +7,7 @@ get_abs_filename() {
 ROOT=$(get_abs_filename "./")
 
 ENABLE_OCCLUDED=false
-DATAROOT="${ROOT}/data"
+DATAROOT="/research/cwloka/projects/dpitt/ROBIN-dataset"
 
 #PATH_ROBIN="${DATAROOT}/PASCAL3D+_release1.1/"
 #PATH_OCCLUDED_PASCAL3DP="${DATAROOT}/OccludedPASCAL3D/"
@@ -16,7 +16,7 @@ DATAROOT="${ROOT}/data"
 #PATH_CACHE_TESTING_SET="${DATAROOT}/PASCAL3D_NeMo/"
 #PATH_CACHE_TESTING_SET_OCC="${DATAROOT}/PASCAL3D_OCC_NeMo/"
 
-PATH_ROBIN="${DATAROOT}/ROBINv1.1/ROBINv1.1"
+PATH_ROBIN="${DATAROOT}/RobinNPZ"
 
 PATH_CACHE_TRAINING_SET="${DATAROOT}/ROBIN_train_NeMo/"
 PATH_CACHE_TESTING_SET="${DATAROOT}/ROBIN_NeMo/"
@@ -27,41 +27,41 @@ MESH_DIMENSIONS=("single"  "multi")
 
 ####################################################################################################
 # Download datasets
-if [ ! -d "${DATAROOT}" ]; then
-    mkdir "${DATAROOT}"
-fi
+# if [ ! -d "${DATAROOT}" ]; then
+#     mkdir "${DATAROOT}"
+# fi
 
-if [ -d "${PATH_ROBIN}" ]; then
-    echo "Found Pascal3D+ dataset in ${PATH_ROBIN}"
-else
-    echo "Download Pascal3D+ dataset in ${PATH_ROBIN}"
-    cd "${DATAROOT}"
-    wget "ftp://cs.stanford.edu/cs/cvgl/PASCAL3D+_release1.1.zip"
-    unzip "PASCAL3D+_release1.1.zip"
-    rm "PASCAL3D+_release1.1.zip"
-    cd "${ROOT}"
-fi
+# if [ -d "${PATH_ROBIN}" ]; then
+#     echo "Found Pascal3D+ dataset in ${PATH_ROBIN}"
+# else
+#     echo "Download Pascal3D+ dataset in ${PATH_ROBIN}"
+#     cd "${DATAROOT}"
+#     wget "ftp://cs.stanford.edu/cs/cvgl/PASCAL3D+_release1.1.zip"
+#     unzip "PASCAL3D+_release1.1.zip"
+#     rm "PASCAL3D+_release1.1.zip"
+#     cd "${ROOT}"
+# fi
 
-if [ ! -d "${PATH_ROBIN}/Image_subsets" ]; then
-    wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=1NsoVXW8ngQCqTHHFSW8YYsCim9EjiXS7' -O Image_subsets.zip
-    unzip Image_subsets.zip
-    rm Image_subsets.zip
-    mv "Image_subsets" "${PATH_ROBIN}"
-fi
+# if [ ! -d "${PATH_ROBIN}/Image_subsets" ]; then
+#     wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=1NsoVXW8ngQCqTHHFSW8YYsCim9EjiXS7' -O Image_subsets.zip
+#     unzip Image_subsets.zip
+#     rm Image_subsets.zip
+#     mv "Image_subsets" "${PATH_ROBIN}"
+# fi
 
-if ${ENABLE_OCCLUDED}; then
-    if [ -d "${PATH_OCCLUDED_PASCAL3DP}" ]; then
-        echo "Found OccludedPascal3D+ dataset in ${PATH_OCCLUDED_PASCAL3DP}"
-    else
-        echo "Download OccludedPascal3D+ dataset in ${PATH_OCCLUDED_PASCAL3DP}"
-        cd "${DATAROOT}"
-        git clone "https://github.com/Angtian/OccludedPASCAL3D.git"
-        cd "OccludedPASCAL3D"
-        chmod +x "download_FG.sh"
-        ./download_FG.sh
-        cd "${ROOT}"
-    fi
-fi
+# if ${ENABLE_OCCLUDED}; then
+#     if [ -d "${PATH_OCCLUDED_PASCAL3DP}" ]; then
+#         echo "Found OccludedPascal3D+ dataset in ${PATH_OCCLUDED_PASCAL3DP}"
+#     else
+#         echo "Download OccludedPascal3D+ dataset in ${PATH_OCCLUDED_PASCAL3DP}"
+#         cd "${DATAROOT}"
+#         git clone "https://github.com/Angtian/OccludedPASCAL3D.git"
+#         cd "OccludedPASCAL3D"
+#         chmod +x "download_FG.sh"
+#         ./download_FG.sh
+#         cd "${ROOT}"
+#     fi
+# fi
 
 
 ####################################################################################################

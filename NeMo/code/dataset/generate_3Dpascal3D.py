@@ -21,7 +21,7 @@ args = parser.parse_args()
 
 args.overwrite = args.overwrite == 'True'
 
-cates = ['aeroplane', 'bicycle', 'boat', 'bottle', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train', 'tvmonitor']
+cates = ['aeroplane', 'bicycle', 'boat', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train']
 d_mesh = args.mesh_d
 dx_dict = {'car':'d5', 'bus':'d4', 'motorbike':'d4', 'boat':'d5', 'bicycle':'d5', 'aeroplane':'d56', 'sofa':'d4', 'tvmonitor':'d4', 'chair':'d45', 'diningtable':'d5', 'bottle':'d5', 'train':'d5'}
 
