@@ -55,6 +55,7 @@ sperate_bank = (args.sperate_bank == 'True' or args.sperate_bank == 'true')
 
 n_list = get_n_list(args.mesh_path)
 subtypes = ['mesh%02d' % (i + 1) for i in range(len(n_list))]
+print(f'{subtypes=}')
 
 os.makedirs(args.save_dir, exist_ok=True)
 

@@ -16,7 +16,7 @@ source_path = args.source_path + 'annotations3D_%s/' % mesh_d
 target_path = args.target_path + 'annotations3D_%s/' % mesh_d
 occ_level = args.occ_level
 
-all_cates = ['aeroplane', 'bicycle', 'boat', 'bottle', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train', 'tvmonitor']
+all_cates = ['aeroplane', 'bicycle', 'boat', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train']
 
 for cate in all_cates:
     source_list = os.listdir(os.path.join(source_path, cate))

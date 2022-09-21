@@ -41,9 +41,13 @@ class Pascal3DPlus(Dataset):
             list_path = 'lists'
 
         self.image_path = os.path.join(self.root_path, img_path, '%s/' % (self.img_class + data_pendix))
-        self.annotation_path = os.path.join(self.root_path, anno_path, '%s/' % (self.img_class + data_pendix))
-        list_path = os.path.join(self.root_path, list_path, '%s/' % (self.img_class + data_pendix))
 
+        print(f'{self.image_path=}')
+        self.annotation_path = os.path.join(self.root_path, anno_path, '%s/' % (self.img_class + data_pendix))
+        print(f'{self.annotation_path=}')
+        
+        list_path = os.path.join(self.root_path, list_path, '%s/' % (self.img_class + data_pendix))
+        print(f'{list_path=}')
         self.transforms = transforms
 
         if 'subtypes' in kwargs:
@@ -54,6 +58,7 @@ class Pascal3DPlus(Dataset):
         self.file_list = sum(
             [[l.strip() for l in open(os.path.join(list_path, subtype_ + '.txt')).readlines()] for subtype_ in
              self.subtypes], [])
+        print(f'{self.file_list=}')
 
         if 'weighted' in kwargs:
             self.weighted = kwargs['weighted']

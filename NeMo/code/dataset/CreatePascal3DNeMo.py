@@ -9,6 +9,7 @@ import math
 from kp_list import kp_list_dict, mesh_len
 from kp_list import top_50_size_dict
 import argparse
+from tqdm import tqdm
 
 global args
 
@@ -67,7 +68,7 @@ def get_anno(record, *args, idx=0):
 
 
 print('Creating dataset, finished: ', end='')
-for category in categories:
+for category in tqdm(categories):
     print('%s' % category, end=' ')
     # print(category)
     kp_list = kp_list_dict[category]

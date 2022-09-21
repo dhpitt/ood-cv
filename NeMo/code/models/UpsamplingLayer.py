@@ -35,8 +35,14 @@ class Up(nn.Module):
         diffY = torch.tensor([X2.size()[2] - X1.size()[2]])
         diffX = torch.tensor([X2.size()[3] - X1.size()[3]])
         # just incase:
-        X1 = F.pad(X1, [diffX // 2, diffX - diffX // 2,
-                        diffY // 2, diffY - diffY // 2])
+        # __floordiv__ is deprecated as of torch 1.12.1
+        '''X1 = F.pad(X1, [diffX // 2, diffX - diffX // 2,
+                        diffY // 2, diffY - diffY // 2])'''
+
+        X1 = F.pad(X1, [torch.div(diffX, 2, rounding_mode = 'floor'), diffX - torch.div(diffX, 2, rounding_mode = 'floor'),
+        
+                        torch.div(diffY, 2, rounding_mode = 'floor'), diffY - torch.div(diffY, 2, rounding_mode = 'floor')])
+        
         X = torch.cat([X2, X1], dim=1)
         X = self.doubleconv(X)
         return X

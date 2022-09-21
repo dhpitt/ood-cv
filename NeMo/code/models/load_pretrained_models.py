@@ -22,8 +22,8 @@ def load_model(model_name):
 
     if "resnet50" in model_name:
         print("Using the ResNet50 architecture.")
-        model = torchvision.models.resnet50(pretrained=False)
-        model = torch.nn.DataParallel(model).cuda()
+        model = torchvision.models.resnet50(weights=None)
+        #model = torch.nn.DataParallel(model).cuda()
         checkpoint = model_zoo.load_url(model_urls[model_name])
     elif "vgg16" in model_name:
         print("Using the VGG-16 architecture.")
@@ -54,7 +54,11 @@ def load_model(model_name):
     else:
         raise ValueError("unknown model architecture.")
 
-    model.load_state_dict(checkpoint["state_dict"])
+    compatible_state_dict = {k[7:]: v for k,v in checkpoint['state_dict'].items()}
+    
+    #(compatible_state_dict)
+    #model.load_state_dict(checkpoint["state_dict"])
+    model.load_state_dict(compatible_state_dict)
     return model
 
 
