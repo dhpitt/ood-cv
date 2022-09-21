@@ -58,7 +58,7 @@ class Pascal3DPlus(Dataset):
         self.file_list = sum(
             [[l.strip() for l in open(os.path.join(list_path, subtype_ + '.txt')).readlines()] for subtype_ in
              self.subtypes], [])
-        print(f'{self.file_list=}')
+       #print(f'{self.file_list=}')
 
         if 'weighted' in kwargs:
             self.weighted = kwargs['weighted']
@@ -141,6 +141,14 @@ class ToTensor(object):
 class Normalize(object):
     def __init__(self):
         self.trans = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
+    def __call__(self, sample):
+        sample['img'] = self.trans(sample['img'])
+        return sample
+
+class Resize(object):
+    def __init__(self, img_size):
+        self.trans = transforms.Resize(img_size)
 
     def __call__(self, sample):
         sample['img'] = self.trans(sample['img'])

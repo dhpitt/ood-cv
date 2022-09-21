@@ -101,7 +101,7 @@ def keypoints_to_pixel_index(keypoints, downsample_rate, original_img_size=(480,
     # line_size = 9
     line_size = original_img_size[1] // downsample_rate
     # round down, new coordinate (keypoints[:,:,0]//downsample_rate, keypoints[:, :, 1] // downsample_rate)
-    return torch.div(keypoints[:, :, 0], downsample_rate, mode='floor') * line_size + torch.div(keypoints[:, :, 1], downsample_rate, mode='floor')
+    return torch.div(keypoints[:, :, 0], downsample_rate, rounding_mode='floor') * line_size + torch.div(keypoints[:, :, 1], downsample_rate, rounding_mode='floor')
     #return keypoints[:, :, 0] // downsample_rate * line_size + keypoints[:, :, 1] // downsample_rate # floordiv deprecated
 
 

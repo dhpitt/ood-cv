@@ -13,11 +13,13 @@ from models.KeypointRepresentationNet import NetE2E, net_stride
 import argparse
 from lib.get_n_list import get_n_list
 
+from dataset.Pascal3DPlus import Resize
 from lib.MeshUtils import *
 import os
 import argparse
 from scipy.linalg import logm
 from tqdm import tqdm
+
 
 import pdb
 
@@ -25,10 +27,10 @@ parser = argparse.ArgumentParser(description='CoKe Feature Extraction for NeMo')
 
 parser.add_argument('--local_size', default=1, type=int, help='')
 parser.add_argument('--d_feature', default=128, type=int, help='')
-parser.add_argument('--type_', default='car', type=str, help='')
+parser.add_argument('--type_', default='aeroplane', type=str, help='')
 parser.add_argument('--img_path', type=str,
                     help='Path to folder contains images')
-parser.add_argument('--ckpt', default='../saved_model_car_799.pth', type=str)
+parser.add_argument('--ckpt', default='./exp/NeMo_shapeFE_single/saved_model_%s_199.pth', type=str)
 parser.add_argument('--backbone', default='resnetext', type=str)
 parser.add_argument('--mesh_d', default='single', type=str)
 parser.add_argument('--no_reload', action='store_true')
@@ -39,8 +41,8 @@ parser.add_argument('--objectnet', default=False, type=bool, help='')
 parser.add_argument('--record_pendix', default='', type=str, help='')
 parser.add_argument('--pre_render', default=True, type=bool, help='')
 
-parser.add_argument('--save_final_pred', default='./final_pred.npz', type=str, help='')
-parser.add_argument('--mesh_path', default='../car/', type=str, help='')
+parser.add_argument('--save_final_pred', default='./preds/final_pred_%s.npz', type=str, help='')
+parser.add_argument('--mesh_path', default='../%s/', type=str, help='')
 parser.add_argument('--total_epochs', default=300, type=int, help='')
 parser.add_argument('--lr', default=5e-2, type=float, help='')
 parser.add_argument('--adam_beta_0', default=0.4, type=float, help='')
@@ -205,11 +207,21 @@ image_size = (256, 672)
 if '%s' in args.ckpt:
     args.ckpt = args.ckpt % args.type_
 
+if '%s' in args.save_final_pred:
+    args.save_final_pred = args.save_final_pred % args.type_
+
+if '%s' in args.mesh_path:
+    args.mesh_path = args.mesh_path % args.type_
+
 args.local_size = [args.local_size, args.local_size]
 
 # SingleCuboid: 1, MultiCuboid: number of subtypes
 n_list = get_n_list(args.mesh_path)
+print(n_list)
 subtypes = ['mesh%02d' % (i + 1) for i in range(len(n_list))]
+
+if mesh_d == 'single':
+    subtypes = subtypes[0]
 
 # net = NetE2E(net_type='resnet50', local_size=args.local_size,
 #              output_dimension=args.d_feature, reduce_function=None, n_noise_points=args.num_noise, pretrain = True)
@@ -245,7 +257,7 @@ bank_mems = checkpoint['memory'][0][0:n_list[0]]
 clut_mems = checkpoint['memory'][0][n_list[0]::]
 
 dataset_ = UnlabeledCars(img_path=args.img_path, transform=transforms_)
-dataloader_ = DataLoader(dataset=dataset_, num_workers=0, batch_size=1, shuffle=False)
+dataloader_ = DataLoader(dataset=dataset_, num_workers=4, batch_size=1, shuffle=False)
 
 print('number images:', len(dataset_))
 
