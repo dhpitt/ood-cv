@@ -1,6 +1,7 @@
 # ShapeNet Ensemble for 6D pose estimation:
 My submission to the pose estimation track of OOD-CV at ECCV2022
-### David Pitt
+
+---
 
 I train an ensemble of ResNet50-backbone CNN classifiers to predict each axis of rotation on each category. They are first trained on ImageNet1K with Richard Geirhos' style transfer augmentations, and then fine-tuned on the ROBIN dataset. 
 
