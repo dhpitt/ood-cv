@@ -2,3 +2,4 @@
 ./data/
 ./NeMo/exp
 ./baseline/lightning_logs
+./baseline/checkpoints
