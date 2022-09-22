@@ -1,5 +1,5 @@
 import os
-import multiprocessing
+import multiprocessing as mp
 from pathlib import Path
 from PIL import Image
 import argparse
@@ -7,12 +7,12 @@ import random
 
 import torch
 from torchvision import models
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
 from model import SpecifiedResNet
 
-from dataset import PoseCategoryDataset, train_transforms, test_transforms
+from dataset import PoseCategoryDataset, train_transforms, test_transforms, collate
 
 
 # backbone model, a resnet
@@ -21,11 +21,10 @@ from dataset import PoseCategoryDataset, train_transforms, test_transforms
 # constants
 
 BATCH_SIZE = 24
-EPOCHS     = 1000
+EPOCHS     = 200
 LR         = 3e-5
 NUM_GPUS   = 1
-#NUM_WORKERS = multiprocessing.cpu_count()
-NUM_WORKERS = 4 * NUM_GPUS # according to PyTorch forum
+NUM_WORKERS = mp.cpu_count()
 
 # pytorch lightning module
 
@@ -47,11 +46,12 @@ class SupervisedLearner(pl.LightningModule):
 
     def training_step(self, images, _):
         loss = self.forward(images)
-        self.log(name='loss', value=loss, sync_dist=True)
+        self.log(name='loss', value=loss, batch_size=BATCH_SIZE)
         return {'loss': loss}
 
     def validation_step(self, images, _):
-        acc = self.validate(images)
+        acc = self.learner.classify(images)
+        self.log(name='acc', value=acc, batch_size=8)
         return {'acc pi/6': acc}
 
     def configure_optimizers(self):
@@ -68,17 +68,19 @@ if __name__ == '__main__':
 
     parser.add_argument('--train_root', type=str, required=True,\
                         help='path to your folder of training images')
-    parser.add_argument('--val', type=str, required=True,\
+    parser.add_argument('--val_root', type=str, required=True,\
                         help='path to your folder of validation images')
     args = parser.parse_args()
 
+    # train_ds = PoseCategoryDataset(root=args.train_root, labels_name='train', category='aeroplane', target='azimuth')
+    # val_ds = PoseCategoryDataset(root=args.val_root, labels_name='iid', category='aeroplane', target='azimuth')
     train_ds = PoseCategoryDataset(root=args.train_root, labels_name='train', category='aeroplane', target='azimuth', transforms=train_transforms)
-    val_ds = PoseCategoryDataset(root=args.test_root, labels_name='iid_test', category='aeroplane', target='azimuth', transforms=train_transforms)
+    val_ds = PoseCategoryDataset(root=args.val_root, labels_name='iid', category='aeroplane', target='azimuth', transforms=test_transforms)
 
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS,
-        persistent_workers=True, shuffle=True)
-    val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS,
-        persistent_workers=True, shuffle=False)
+        persistent_workers=True, shuffle=True, collate_fn=collate)
+    val_loader = DataLoader(val_ds, batch_size=8, num_workers=NUM_WORKERS,
+        persistent_workers=True, shuffle=False, collate_fn=collate)
 
     # Checkpoint every epoch
     checkpoint_callback = pl.callbacks.ModelCheckpoint(every_n_epochs=1)
@@ -90,6 +92,7 @@ if __name__ == '__main__':
         accumulate_grad_batches=1,
         sync_batchnorm=True,
         callbacks=[checkpoint_callback],
+        log_every_n_steps=10
     )
     
     model = SupervisedLearner(target='azimuth')

@@ -1,11 +1,14 @@
 import os
 from typing import NamedTuple
 
-import torch
-from torch.utils.data import Dataset, dataloader
-import torchvision.transforms as  tvt
+import numpy as np
+from PIL import Image
 import pandas as pd
-from PIL import Image as PILImage
+import torch
+from torch.utils.data import Dataset, DataLoader
+import torchvision.transforms as  tvt
+from torchvision.io import read_image
+
 
 class Viewpoint(NamedTuple):
     """
@@ -16,6 +19,10 @@ class Viewpoint(NamedTuple):
     elev: int
     dist: int
 
+def collate(data):
+    # TODO: Implement your function
+    # But I guess in your case it should be:
+    return torch.stack([a[0] for a in data]), ([a[1] for a in data])
 
 class PoseCategoryDataset(Dataset):
     '''
@@ -29,41 +36,47 @@ class PoseCategoryDataset(Dataset):
         self.target = target
 
     def __getitem__(self, idx):
-            im_data = self.manifest.iloc[idx]
-            image = PILImage.open(self.root + im_data['im_path'])
-            if self.transforms:
-                image = self.transforms(image)
-            
-            if self.target == 'azimuth':
-                azi = int(im_data['azimuth'] // 30)
-                return (image, azi)
-            elif self.target == 'theta':
-                theta = int(im_data['inplane_rotation'] // 30)
-                return (image, theta)
-            elif self.target == 'elevation':
-                elev = int(im_data['elevation'])
-                return (image, elev)
-            elif self.target == 'distance':
-                dist = int(im_data['distance'])
-                return (image, dist)
-            else:
-                return None
+        im_data = self.manifest.iloc[idx]
+        #print(im_data['im_path'])
+        image = read_image(self.root + im_data['im_path']).float()
+        #print(image)
+        if self.transforms:
+            image = self.transforms(image)
+        if self.target == 'azimuth':
+            azi = int(im_data['azimuth'] // 30)
+            return image, azi
+        elif self.target == 'theta':
+            theta = int(im_data['inplane_rotation'] // 30)
+            return (image, theta)
+        elif self.target == 'elevation':
+            elev = int(im_data['elevation'])
+            return (image, elev)
+        elif self.target == 'distance':
+            dist = int(im_data['distance'])
+            return (image, dist)
+        else:
+            return None
+    def __len__(self):
+        return self.manifest.shape[0]
 
 train_transforms = tvt.Compose([
-    tvt.Resize(224),
-    tvt.ColorJitter(brightness=0.3, hue=0.1, saturation=0.2),
+    tvt.Resize([224, 224]),
+    
+    #tvt.ColorJitter(brightness=0.3, hue=0.1, saturation=0.2),
     tvt.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    tvt.ToTensor()
     ])
 
 test_transforms = tvt.Compose([
-    tvt.Resize(224),
+    tvt.Resize([224, 224]),    
     tvt.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    tvt.ToTensor()
     ])
 
     
 if __name__ == "__main__":
-    d1 = PoseCategoryDataset(root='/research/cwloka/projects/dpitt/ROBIN-dataset/ROBINv1.1/train/', labels_name='train', category='aeroplane', target='azimuth')
-    print(d1.manifest)
-    print(d1[20])
+    d1 = PoseCategoryDataset(root='/research/cwloka/projects/dpitt/ROBIN-dataset/ROBINv1.1/train/', labels_name='train',\
+         category='aeroplane', target='azimuth', transforms=train_transforms)
+    #print(d1.manifest)
+    #print(d1[20])
+    train_loader = DataLoader(d1, batch_size=2, num_workers=4, persistent_workers=True, shuffle=True, collate_fn=my_collate_fn)
+    for idx, (x,y) in enumerate(train_loader):
+        print(x.size())

@@ -29,15 +29,14 @@ class SpecifiedResNet(nn.Module):
         #p_hat = nn.functional.softmax(x, dim=1)
         #y_hat = torch.argmax(p_hat, dim=1)
 
-        return nn.functional.cross_entropy(input=logits, target=y)
+        return nn.functional.cross_entropy(input=logits, target=torch.tensor(y).cuda())
     
     def classify(self, batch):
         x, y = batch
         logits = self.net(x)
-        p_hat = nn.functional.softmax(x, dim=1)
+        p_hat = nn.functional.softmax(logits, dim=1)
         y_hat = torch.argmax(p_hat, dim=1)
-
-        return (y_hat == y).sum()/len(y)
+        return (y_hat == torch.tensor(y).cuda()).sum()/len(y)
         
 
 if __name__ == "__main__":
