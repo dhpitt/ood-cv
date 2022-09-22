@@ -51,7 +51,12 @@ class SupervisedLearner(pl.LightningModule):
 
     def validation_step(self, images, _):
         acc = self.learner.classify(images)
-        self.log(name='acc', value=acc, batch_size=8)
+        self.log(name='val_acc', value=acc, batch_size=8)
+        return {'acc pi/6': acc}
+    
+    def test_step(self, images, _):
+        acc = self.learner.classify(images)
+        self.log(name='val_acc', value=acc, batch_size=8)
         return {'acc pi/6': acc}
 
     def configure_optimizers(self):
@@ -64,37 +69,47 @@ class SupervisedLearner(pl.LightningModule):
 if __name__ == '__main__':
     # arguments
 
-    parser = argparse.ArgumentParser(description='byfl-lightning')
+    parser = argparse.ArgumentParser(description='6dpose-lightning')
 
     parser.add_argument('--train_root', type=str, required=True,\
                         help='path to your folder of training images')
     parser.add_argument('--val_root', type=str, required=True,\
                         help='path to your folder of validation images')
+    parser.add_argument('--ckpt', type=str, required=False,\
+        help='path to a saved model checkpoint')
     args = parser.parse_args()
+    print(args.train_root)
 
-    # train_ds = PoseCategoryDataset(root=args.train_root, labels_name='train', category='aeroplane', target='azimuth')
-    # val_ds = PoseCategoryDataset(root=args.val_root, labels_name='iid', category='aeroplane', target='azimuth')
-    train_ds = PoseCategoryDataset(root=args.train_root, labels_name='train', category='aeroplane', target='azimuth', transforms=train_transforms)
-    val_ds = PoseCategoryDataset(root=args.val_root, labels_name='iid', category='aeroplane', target='azimuth', transforms=test_transforms)
+    categories = ['aeroplane', 'bicycle', 'boat', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train']
+    targets = ['azimuth', 'elevation', 'theta', 'distance']
 
-    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS,
-        persistent_workers=True, shuffle=True, collate_fn=collate)
-    val_loader = DataLoader(val_ds, batch_size=8, num_workers=NUM_WORKERS,
-        persistent_workers=True, shuffle=False, collate_fn=collate)
+    for category in categories:
+        for target in targets:
 
-    # Checkpoint every epoch
-    checkpoint_callback = pl.callbacks.ModelCheckpoint(every_n_epochs=1)
+            train_ds = PoseCategoryDataset(root=args.train_root, labels_name='train', category='aeroplane', target=target, transforms=train_transforms)
+            val_ds = PoseCategoryDataset(root=args.val_root, labels_name='iid', category='aeroplane', target=target, transforms=test_transforms)
 
-    trainer = pl.Trainer(
-        accelerator='gpu',
-        devices=NUM_GPUS,
-        max_epochs=EPOCHS,
-        accumulate_grad_batches=1,
-        sync_batchnorm=True,
-        callbacks=[checkpoint_callback],
-        log_every_n_steps=10
-    )
-    
-    model = SupervisedLearner(target='azimuth')
-    
-    trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=val_loader)
+            train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS,
+                persistent_workers=True, shuffle=True, collate_fn=collate)
+            val_loader = DataLoader(val_ds, batch_size=8, num_workers=NUM_WORKERS,
+                persistent_workers=True, shuffle=False, collate_fn=collate)
+
+            # Checkpoint every epoch
+            checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath='./checkpoints/{}_{}'.format(category, target), save_top_k=2, monitor='val_acc')
+
+            trainer = pl.Trainer(
+                accelerator='gpu',
+                devices=NUM_GPUS,
+                max_epochs=EPOCHS,
+                accumulate_grad_batches=1,
+                sync_batchnorm=True,
+                callbacks=[checkpoint_callback],
+                log_every_n_steps=10
+            )
+            
+            if args.ckpt is not None:
+                model = SupervisedLearner(target='azimuth').load_from_checkpoint(args.ckpt.format(category))
+                trainer.test(model, dataloaders=val_loader)
+            else:
+                model = SupervisedLearner(target=target)
+                trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=val_loader)
