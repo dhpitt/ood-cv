@@ -2,7 +2,7 @@ import torch
 import torch.utils.data
 import torchvision.transforms as transforms
 
-from dataset.Pascal3DPlus import ToTensor, Normalize, Pascal3DPlus
+from dataset.Pascal3DPlus import ToTensor, Normalize, Resize, Pascal3DPlus
 from models.FeatureBanks import NearestMemoryManager, mask_remove_near
 from models.KeypointRepresentationNet import NetE2E
 from datetime import datetime
@@ -196,7 +196,7 @@ for epoch in range(args.total_epochs):
             iter_num += 1
         # torch.cuda.empty_cache()
 
-    if epoch % 200 == 199:
+    if epoch % 100 == 99:
         save_checkpoint(
         {'state': net.state_dict(), 'memory': [mem.memory for mem in bank_set], 'timestamp': int(datetime.timestamp(datetime.now())),
          'args': args}, 'saved_model_%s_%02d.pth' % (args.type_, epoch))

@@ -52,7 +52,7 @@ for cate in cates:
     manager = MeshConverter(path=mesh_path)
 
     fl_list = os.listdir(source_path)
-
+    
     direction_dicts = []
     for t in manager.loader:
         direction_dicts.append(direction_calculator(*t))
@@ -64,7 +64,6 @@ for cate in cates:
         # if True:
             annos = np.load(os.path.join(source_path, fname), allow_pickle=True)
             annos = dict(annos)
-            #print(annos)
             if single_mesh:
                 annos['cad_index'] = 1
             kps, vis = manager.get_one(annos)
