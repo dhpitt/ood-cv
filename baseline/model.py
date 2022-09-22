@@ -37,6 +37,13 @@ class SpecifiedResNet(nn.Module):
         p_hat = nn.functional.softmax(logits, dim=1)
         y_hat = torch.argmax(p_hat, dim=1)
         return (y_hat == torch.tensor(y).cuda()).sum()/len(y)
+    
+    def unlabeled_inference(self, batch):
+        x, names = batch
+        logits = self.net(x)
+        p_hat = nn.functional.softmax(logits, dim=1)
+        y_hat = torch.argmax(p_hat, dim=1)
+        return names, y_hat
         
 
 if __name__ == "__main__":

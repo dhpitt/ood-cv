@@ -39,6 +39,8 @@ class PoseCategoryDataset(Dataset):
         im_data = self.manifest.iloc[idx]
         #print(im_data['im_path'])
         image = read_image(self.root + im_data['im_path']).float()
+        if image.shape[0] != 3:
+            image = torch.cat([image, image, image], dim=0)
         #print(image)
         if self.transforms:
             image = self.transforms(image)
@@ -46,16 +48,40 @@ class PoseCategoryDataset(Dataset):
             azi = int(im_data['azimuth'] // 30)
             return image, azi
         elif self.target == 'theta':
-            theta = int(im_data['inplane_rotation'] // 30)
-            return (image, theta)
+            theta = int(im_data['inplane_rotation']%360 // 30)
+            return image, theta
         elif self.target == 'elevation':
-            elev = int(im_data['elevation'])
-            return (image, elev)
+            elev = int(abs(im_data['elevation']) // 9)
+            return image, elev
         elif self.target == 'distance':
-            dist = int(im_data['distance'])
-            return (image, dist)
+            dist = int(im_data['distance'] // 10)
+            return image, dist
         else:
             return None
+    def __len__(self):
+        return self.manifest.shape[0]
+
+
+class UnlabeledPoseDataset(Dataset):
+    '''
+    Basic pose estimation dataset. Bucketizes angles into buckets of size pi/6.
+    '''
+    def __init__(self, *, root, labels_name, category, transforms=None):
+        self.root = root
+        self.transforms = transforms
+        raw_df = pd.read_csv(root + labels_name + '.csv')
+        self.manifest = raw_df.loc[raw_df['cls_name'] == category].reset_index()
+
+    def __getitem__(self, idx):
+        im_data = self.manifest.iloc[idx]
+        #print(im_data['im_path'])
+        image = read_image(self.root + im_data['im_path']).float()
+        if image.shape[0] != 3:
+            image = torch.cat([image, image, image], dim=0)
+        #print(image)
+        if self.transforms:
+            image = self.transforms(image)
+        return image, im_data['source'] + '_' + im_data['cls'] + '_' + im_data['im_name'] + '_' + im_data['object']
     def __len__(self):
         return self.manifest.shape[0]
 
@@ -73,10 +99,11 @@ test_transforms = tvt.Compose([
 
     
 if __name__ == "__main__":
-    d1 = PoseCategoryDataset(root='/research/cwloka/projects/dpitt/ROBIN-dataset/ROBINv1.1/train/', labels_name='train',\
-         category='aeroplane', target='azimuth', transforms=train_transforms)
-    #print(d1.manifest)
-    #print(d1[20])
-    train_loader = DataLoader(d1, batch_size=2, num_workers=4, persistent_workers=True, shuffle=True, collate_fn=my_collate_fn)
-    for idx, (x,y) in enumerate(train_loader):
-        print(x.size())
+    d1 = UnlabeledPoseDataset(root='/research/cwloka/projects/dpitt/ROBIN-dataset/ROBINv1.1/iid_test/', labels_name='iid',\
+         category='aeroplane',  transforms=train_transforms)
+    print(d1.manifest)
+    print(d1[20])
+    #train_loader = DataLoader(d1, batch_size=2, num_workers=4, persistent_workers=True, shuffle=True, collate_fn=collate)
+    #for idx, (x,y) in enumerate(train_loader):
+        #print(x.size())
+        #print(x)
