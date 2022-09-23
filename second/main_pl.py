@@ -19,7 +19,7 @@ from model import SpecifiedResNet
 # constants
 
 BATCH_SIZE = 48
-EPOCHS     = 200
+EPOCHS     = 100
 LR         = 3e-6
 NUM_GPUS   = 1
 NUM_WORKERS = mp.cpu_count()
@@ -37,7 +37,7 @@ class SupervisedLearner(pl.LightningModule):
         elif target == 'elevation':
             out_bins = 6
         self.learner = SpecifiedResNet(out_bins=out_bins)
-        self.save_hyperparameters(ignore=['net'])
+        self.save_hyperparameters(ignore=['net', 'classifier'])
         self.dframe = pd.DataFrame(columns=['imgs', 'labels', 'azimuth', 'elevation', 'theta', 'distance'])
 
     def forward(self, images):

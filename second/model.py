@@ -22,17 +22,13 @@ class GaussianNoiseTransform(object):
         img: torch.Tensor of shape 1 || 3 x h x w
         '''
         noise = torch.randn(size=img.size()) * math.sqrt(self.sigmasq)
-        img += noise
+        img += noise.cuda()
         return img
 
-    
-
-
-
-augmentatations = tvt.Compose([
-    tvt.RandomApply(tvt.GaussianBlur(kernel_size=(5, 5), sigma=(1,1))),
-    tvt.RandomApply(tvt.ColorJitter(brightness=.5, hue=.5)),
-    tvt.RandomApply(GaussianNoiseTransform())
+contrastive_augs = tvt.Compose([
+    tvt.RandomApply([tvt.GaussianBlur(kernel_size=(5, 5), sigma=(1,1))]),
+    tvt.RandomApply([tvt.ColorJitter(brightness=.5, hue=.5)]),
+    tvt.RandomApply([GaussianNoiseTransform()])
 ])
 
 class SpecifiedResNet(nn.Module):
@@ -47,14 +43,27 @@ class SpecifiedResNet(nn.Module):
         self.classifier = nn.Linear(2048, out_bins)
 
     def forward(self, batch):
+        self.train()
         x, y = batch
+        loss = 0
+
+        # add a contrastive learning loss term
+        view1, view2 = contrastive_augs(x), contrastive_augs(x)
+        z1, z2 = nn.functional.normalize(self.net(view1)), nn.functional.normalize(self.net(view2))
+        similarity = z1 @ z2.T
+        target = torch.arange(len(similarity)).cuda()
+        loss += nn.functional.cross_entropy(similarity, target, reduction='mean')
+
+        # add classification accuracy loss term
         features = self.net(x)
         logits = self.classifier(features)
-        loss = 0
+        
         loss += nn.functional.cross_entropy(input=logits, target=torch.tensor(y).cuda())
+
         return loss
     
     def classify(self, batch):
+        self.eval()
         x, y = batch
         features = self.net(x)
         logits = self.classifier(features)
@@ -63,6 +72,7 @@ class SpecifiedResNet(nn.Module):
         return (y_hat == torch.tensor(y).cuda()).sum()/len(y)
     
     def unlabeled_inference(self, batch):
+        self.eval()
         x, names, labels = batch
         logits = self.net(x)
         p_hat = nn.functional.softmax(logits, dim=1)
