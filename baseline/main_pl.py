@@ -9,13 +9,11 @@ import torch
 from torchvision import models
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
-
-from model import SpecifiedResNet
+import pandas as pd
 
 from dataset import PoseCategoryDataset, train_transforms, test_transforms, collate
+from model import SpecifiedResNet
 
-
-# backbone model, a resnet
 
 
 # constants
@@ -40,6 +38,7 @@ class SupervisedLearner(pl.LightningModule):
             out_bins = 10
         self.learner = SpecifiedResNet(out_bins=out_bins)
         self.save_hyperparameters(ignore=['net'])
+        self.dframe = pd.DataFrame(columns=['imgs', 'labels', 'azimuth', 'elevation', 'theta', 'distance'])
 
     def forward(self, images):
         return self.learner(images)
@@ -59,7 +58,6 @@ class SupervisedLearner(pl.LightningModule):
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=LR)
-
 
 
 # main

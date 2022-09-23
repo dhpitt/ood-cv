@@ -24,6 +24,11 @@ def collate(data):
     # But I guess in your case it should be:
     return torch.stack([a[0] for a in data]), ([a[1] for a in data])
 
+def collate_test(data):
+    # TODO: Implement your function
+    # But I guess in your case it should be:
+    return torch.stack([a[0] for a in data]), ([a[1] for a in data]), ([a[2] for a in data])
+
 class PoseCategoryDataset(Dataset):
     '''
     Basic pose estimation dataset. Bucketizes angles into buckets of size pi/6.
@@ -81,8 +86,9 @@ class UnlabeledPoseDataset(Dataset):
         #print(image)
         if self.transforms:
             image = self.transforms(image)
-        return image, im_data['source'] + '_' + im_data['cls'] + '_' + im_data['im_name'] + '_' + im_data['object']
-    def __len__(self):
+        return image, im_data['source'] + '_' + im_data['cls_name'] + '_' + im_data['im_name'] + '_' + str(im_data['object']), im_data['cls_name']
+
+    def __len__(self):  
         return self.manifest.shape[0]
 
 train_transforms = tvt.Compose([
@@ -103,7 +109,6 @@ if __name__ == "__main__":
          category='aeroplane',  transforms=train_transforms)
     print(d1.manifest)
     print(d1[20])
-    #train_loader = DataLoader(d1, batch_size=2, num_workers=4, persistent_workers=True, shuffle=True, collate_fn=collate)
-    #for idx, (x,y) in enumerate(train_loader):
-        #print(x.size())
-        #print(x)
+    train_loader = DataLoader(d1, batch_size=1, num_workers=4, persistent_workers=True, shuffle=True, collate_fn=collate)
+    for idx, b in enumerate(train_loader):
+        print(b)
