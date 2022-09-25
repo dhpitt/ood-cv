@@ -1,5 +1,6 @@
 import os
 from typing import NamedTuple
+import math
 
 import numpy as np
 from PIL import Image
@@ -18,6 +19,24 @@ class Viewpoint(NamedTuple):
     theta: int
     elev: int
     dist: int
+
+class GaussianNoiseTransform(object):
+    '''Custom transform to add Gaussian noise to an image'''
+    def __init__(self, mu=0, sigmasq=0.05):
+        self.mu = mu
+        self.sigmasq = sigmasq
+
+    def __repr__(self):
+        return 'GaussianNoiseTransform object'
+
+    def __call__(self, img):
+        '''
+        Applies gaussian noise to a multi-channel image
+        img: torch.Tensor of shape c x h x w
+        '''
+        noise = torch.randn(size=img.size()) * math.sqrt(self.sigmasq)
+        img += noise
+        return img
 
 def collate(data):
     # TODO: Implement your function
@@ -56,10 +75,10 @@ class PoseCategoryDataset(Dataset):
             theta = int(im_data['inplane_rotation']%360 // 30)
             return image, theta
         elif self.target == 'elevation':
-            elev = int(abs(im_data['elevation']) // 9)
+            elev = int((im_data['elevation'] + 90) // 30)
             return image, elev
         elif self.target == 'distance':
-            dist = int(im_data['distance'] // 10)
+            dist = int(im_data['distance'] // 20)
             return image, dist
         else:
             return None
@@ -94,11 +113,42 @@ class UnlabeledPoseDataset(Dataset):
     def __len__(self):  
         return self.manifest.shape[0]
 
+class Phase2PoseDataset(Dataset):
+    '''
+    Basic pose estimation dataset. Bucketizes angles into buckets of size pi/6.
+    '''
+    def __init__(self, *, root, category, transforms=None):
+        self.root = root
+        self.transforms = transforms
+        all_imgs = os.listdir(root)
+        self.images = [x for x in all_imgs if category in x]
+
+    def __getitem__(self, idx):
+        imname = self.images[idx]
+        
+        image = read_image(self.root + imname).float()
+        if image.shape[0] == 4:
+            image = image[:3, :, :]
+        elif image.shape[0] != 3:
+            print('n_channels: {}'.format(image.shape[0]))
+            image = torch.cat([image, image, image], dim=0)
+        if self.transforms:
+            image = self.transforms(image)
+        return image, imname 
+
+
+    def __len__(self):  
+        return len(self.images)
+
 train_transforms = tvt.Compose([
     tvt.Resize([224, 224]),
+    tvt.RandomApply([tvt.GaussianBlur(kernel_size=(5, 9), sigma=(0.1,1))]),
+    tvt.RandomApply([tvt.ColorJitter(brightness=.5, hue=.5)]),
+    tvt.RandomApply([GaussianNoiseTransform()]),
     
     #tvt.ColorJitter(brightness=0.3, hue=0.1, saturation=0.2),
     tvt.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    
     ])
 
 test_transforms = tvt.Compose([

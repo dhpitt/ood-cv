@@ -24,7 +24,7 @@ from dataset import PoseCategoryDataset, UnlabeledPoseDataset, test_transforms, 
 BATCH_SIZE = 1
 LR         = 3e-6
 NUM_GPUS   = 1
-EPOCHS     = 10
+EPOCHS     = 1
 NUM_WORKERS = mp.cpu_count()
 
 
@@ -37,9 +37,9 @@ class SupervisedLearner(pl.LightningModule):
         if target == 'azimuth' or target == 'theta':
             out_bins = 12
         elif target == 'distance':
-            out_bins = 10
+            out_bins = 5
         elif target == 'elevation':
-            out_bins = 10
+            out_bins = 6
         self.learner = SpecifiedResNet(out_bins=out_bins)
         self.save_hyperparameters(ignore=['net'])
         self.df = pd.DataFrame({'imgs': [], 'labels':[], 'data':[]})
@@ -67,16 +67,18 @@ if __name__ == '__main__':
                         help='path to your folder of testing images')
     parser.add_argument('--ckpt', type=str, required=False,\
         help='path to a saved model checkpoint')
+
+    parser.add_argument('--iid', required=False, action='store_true', default=False)
     args = parser.parse_args()
 
     categories = ['aeroplane', 'bicycle', 'boat', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train']
     targets = ['azimuth', 'theta', 'elevation', 'distance']
-    nuisances = ['occlusion', 'context','texture','shape','pose','weather']
-    #nuisances = ['texture','shape','pose','weather']
+    nuisances = ['iid', 'occlusion', 'context','texture','shape','pose','weather']
+    #nuisances = ['iid']
 
-    # categories = ['boat']
-    # targets = ['azimuth']
-    # nuisances = ['texture']
+    #categories = ['boat']
+    #targets = ['elevation']
+    #uisances = ['occlusion']
 
     save_labels_root = './pose_res/'
 
@@ -86,7 +88,12 @@ if __name__ == '__main__':
             running_df = None
             for target in targets:
                 
-                test_ds = UnlabeledPoseDataset(root=args.test_root + nuisance + '/', labels_name=nuisance + '_bias', category=category, transforms=test_transforms)
+                if nuisance == 'iid':   
+                    test_ds = UnlabeledPoseDataset(root=args.test_root + 'iid_test/', labels_name=nuisance,\
+                         category=category, transforms=test_transforms)
+                else:
+                    test_ds = UnlabeledPoseDataset(root=args.test_root + 'nuisances/' + nuisance + '/',\
+                         labels_name=nuisance + '_bias', category=category, transforms=test_transforms)
 
                 test_loader = DataLoader(test_ds, batch_size=1, num_workers=NUM_WORKERS,
                     persistent_workers=True, shuffle=False, collate_fn=collate_test)
@@ -111,9 +118,10 @@ if __name__ == '__main__':
                 if target == 'azimuth' or target == 'theta':
                     preds['data'] *= 30.
                 if target == 'distance':
-                    preds['data'] *= 10.
+                    preds['data'] *= 20.
                 elif target == 'elevation':
-                    preds['data'] *= 9.
+                    preds['data'] *= 30.
+                    preds['data'] -= 90.
                 
                 preds = preds.rename(columns={'data':target})
 

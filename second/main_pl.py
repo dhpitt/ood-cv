@@ -27,7 +27,7 @@ NUM_WORKERS = mp.cpu_count()
 # pytorch lightning module
 
 class SupervisedLearner(pl.LightningModule):
-    def __init__(self, target, **kwargs):
+    def __init__(self, target):
         super().__init__()
         out_bins = None
         if target == 'azimuth' or target == 'theta':
@@ -37,8 +37,7 @@ class SupervisedLearner(pl.LightningModule):
         elif target == 'elevation':
             out_bins = 6
         self.learner = SpecifiedResNet(out_bins=out_bins)
-        self.save_hyperparameters(ignore=['net', 'classifier'])
-        self.dframe = pd.DataFrame(columns=['imgs', 'labels', 'azimuth', 'elevation', 'theta', 'distance'])
+        self.save_hyperparameters(ignore=['net'])
 
     def forward(self, images):
         return self.learner(images)
@@ -78,8 +77,7 @@ if __name__ == '__main__':
 
     categories = ['aeroplane', 'bicycle', 'boat', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train']
     targets = ['azimuth', 'theta', 'elevation', 'distance']
-    nuisance_types = ['occlusion', 'context','texture','shape','pose','weather']
-    #targets = ['elevation', 'distance']
+    #nuisance_types = ['occlusion', 'context','texture','shape','pose','weather']
 
     for target in targets:
         for category in categories:
@@ -94,7 +92,7 @@ if __name__ == '__main__':
                 persistent_workers=True, shuffle=False, collate_fn=collate)
 
             # Checkpoint every epoch
-            checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath='./checkpoints/{}_{}'.format(category, target), save_top_k=2, monitor='val_acc', mode='max')
+            checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath='./checkpoints_mlp_lowdof/{}_{}'.format(category, target), save_top_k=2, monitor='val_acc', mode='max')
 
             trainer = pl.Trainer(
                 accelerator='gpu',
@@ -108,4 +106,9 @@ if __name__ == '__main__':
             
             
             model = SupervisedLearner(target=target)
+
+            lr_finder = trainer.tuner.lr_find(model=model,train_dataloaders=train_loader)
+            new_lr = lr_finder.suggestion()
+            model.hparams.lr = new_lr
+
             trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=val_loader)
