@@ -45,6 +45,14 @@ class SpecifiedResNet(nn.Module):
         y_hat = torch.argmax(p_hat, dim=1)
         #print(y_hat, names)
         return y_hat.cpu().numpy()[0], names[0], labels[0]
+
+    def unlabeled_inference_p2(self, batch):
+        x, names = batch
+        logits = self.net(x)
+        p_hat = nn.functional.softmax(logits, dim=1)
+        y_hat = torch.argmax(p_hat, dim=1)
+        #print(y_hat, names)
+        return y_hat.cpu().numpy()[0], names[0]
         
 
 if __name__ == "__main__":

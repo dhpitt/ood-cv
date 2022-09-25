@@ -29,12 +29,13 @@ def collate_test(data):
     # But I guess in your case it should be:
     return torch.stack([a[0] for a in data]), ([a[1] for a in data]), ([a[2] for a in data])
 
-class PoseCategoryDataset(Dataset):
+class PoseCategoryDataset_with_bbox(Dataset):
     '''
     Basic pose estimation dataset. Bucketizes angles into buckets of size pi/6.
     '''
-    def __init__(self, *, root, labels_name, category, target, transforms=None):
+    def __init__(self, *, root, anno_root, labels_name, category, target, transforms=None):
         self.root = root
+        self.anno_root = anno_root
         self.transforms = transforms
         raw_df = pd.read_csv(root + labels_name + '.csv')
         self.manifest = raw_df.loc[raw_df['cls_name'] == category].reset_index()
@@ -56,7 +57,7 @@ class PoseCategoryDataset(Dataset):
             theta = int(im_data['inplane_rotation']%360 // 30)
             return image, theta
         elif self.target == 'elevation':
-            elev = int(abs(im_data['elevation']) // 9)
+            elev = int(im_data['elevation'] // 9)
             return image, elev
         elif self.target == 'distance':
             dist = int(im_data['distance'] // 10)
@@ -81,15 +82,42 @@ class UnlabeledPoseDataset(Dataset):
         im_data = self.manifest.iloc[idx]
         #print(im_data['im_path'])
         image = read_image(self.root + im_data['im_path']).float()
-        if image.shape[0] != 3:
+        if image.shape[0] == 4:
+            image = image[:3, :, :]
+        elif image.shape[0] != 3:
+            print('n_channels: {}'.format(image.shape[0]))
             image = torch.cat([image, image, image], dim=0)
-        #print(image)
+        #print(image) 
         if self.transforms:
             image = self.transforms(image)
         return image, im_data['source'] + '_' + im_data['cls_name'] + '_' + im_data['im_name'] + '_' + str(im_data['object']), im_data['cls_name']
 
+class Phase2PoseDataset(Dataset):
+    '''
+    Basic pose estimation dataset. Bucketizes angles into buckets of size pi/6.
+    '''
+    def __init__(self, *, root, category, transforms=None):
+        self.root = root
+        self.transforms = transforms
+        all_imgs = os.listdir(root)
+        self.images = [x for x in all_imgs if category in x]
+
+    def __getitem__(self, idx):
+        imname = self.images[idx]
+        
+        image = read_image(self.root + imname).float()
+        if image.shape[0] == 4:
+            image = image[:3, :, :]
+        elif image.shape[0] != 3:
+            print('n_channels: {}'.format(image.shape[0]))
+            image = torch.cat([image, image, image], dim=0)
+        if self.transforms:
+            image = self.transforms(image)
+        return image, imname 
+
+
     def __len__(self):  
-        return self.manifest.shape[0]
+        return len(self.images)
 
 train_transforms = tvt.Compose([
     tvt.Resize([224, 224]),

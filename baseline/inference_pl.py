@@ -71,62 +71,70 @@ if __name__ == '__main__':
 
     categories = ['aeroplane', 'bicycle', 'boat', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train']
     targets = ['azimuth', 'theta', 'elevation', 'distance']
-    nuisance_types = ['occlusion', 'context','texture','shape','pose','weather']
+    nuisances = ['iid','occlusion', 'context','texture','shape','pose','weather']
+    #nuisances = ['texture','shape','pose','weather']
 
-    #categories = ['aeroplane', 'bicycle']
-    #targets = ['azimuth','elevation']
+    # categories = ['boat']
+    # targets = ['azimuth']
+    # nuisances = ['texture']
 
     save_labels_root = './pose_res/'
 
-    results = None
-    for category in categories:
-        running_df = None
-        for target in targets:
-            
-            test_ds = UnlabeledPoseDataset(root=args.test_root, labels_name='iid', category=category, transforms=test_transforms)
-
-            test_loader = DataLoader(test_ds, batch_size=1, num_workers=NUM_WORKERS,
-                persistent_workers=True, shuffle=False, collate_fn=collate_test)
-
-            checkpoint_path = './checkpoints/{}_{}/'.format(category, target)
-            valid_checkpoints = os.listdir(checkpoint_path)
-            ckpt = checkpoint_path + valid_checkpoints[0]
-
-            trainer = pl.Trainer(
-                accelerator='gpu',
-                devices=NUM_GPUS,
-                max_epochs=EPOCHS,
-                accumulate_grad_batches=1,
-                sync_batchnorm=True,
-                log_every_n_steps=1
-            )
-        
-            model = SupervisedLearner(target=target).load_from_checkpoint(ckpt)
-            trainer.test(model, dataloaders=test_loader)
-            preds = trainer.model.df
+    for nuisance in nuisances:
+        results = None
+        for category in categories:
+            running_df = None
+            for target in targets:
                 
-            if target == 'azimuth' or target == 'theta':
-                preds['data'] *= 30.
-            if target == 'distance':
-                preds['data'] *= 10.
-            elif target == 'elevation':
-                preds['data'] *= 9.
-            
-            preds = preds.rename(columns={'data':target})
+                if nuisance == 'iid':   
+                    test_ds = UnlabeledPoseDataset(root=args.test_root + 'iid_test/', labels_name=nuisance,\
+                         category=category, transforms=test_transforms)
+                else:
+                    test_ds = UnlabeledPoseDataset(root=args.test_root + 'nuisances/' + nuisance + '/',\
+                         labels_name=nuisance + '_bias', category=category, transforms=test_transforms)
 
-            if running_df is None:
-                running_df = preds
-            else:
-                preds = preds.drop(columns=['labels'])
-                running_df = running_df.merge(right=preds, on='imgs')
+                test_loader = DataLoader(test_ds, batch_size=1, num_workers=NUM_WORKERS,
+                    persistent_workers=True, shuffle=False, collate_fn=collate_test)
+
+                checkpoint_path = './checkpoints/{}_{}/'.format(category, target)
+                valid_checkpoints = os.listdir(checkpoint_path)
+                ckpt = checkpoint_path + valid_checkpoints[0]
+
+                trainer = pl.Trainer(
+                    accelerator='gpu',
+                    devices=NUM_GPUS,
+                    max_epochs=EPOCHS,
+                    accumulate_grad_batches=1,
+                    sync_batchnorm=True,
+                    log_every_n_steps=1
+                )
             
-            print(running_df)
-        
-        if results is None:
-            results = running_df
-        else:
-            results = pd.concat([results, running_df])     
-        print(results)
-    results.to_csv(save_labels_root + 'iid.csv')
+                model = SupervisedLearner(target=target).load_from_checkpoint(ckpt)
+                trainer.test(model, dataloaders=test_loader)
+                preds = trainer.model.df
+                    
+                if target == 'azimuth' or target == 'theta':
+                    preds['data'] *= 30.
+                if target == 'distance':
+                    preds['data'] *= 10.
+                elif target == 'elevation':
+                    preds['data'] *= 9.
+                
+                preds = preds.rename(columns={'data':target})
+
+                if running_df is None:
+                    running_df = preds
+                else:
+                    preds = preds.drop(columns=['labels'])
+                    running_df = running_df.merge(right=preds, on='imgs', how='left').drop_duplicates()
+                
+                print(running_df)
+            
+            if results is None:
+                results = running_df
+            else:
+                results = pd.concat([results, running_df])     
+            print(results)
+        results.to_csv(save_labels_root + '{}.csv'.format(nuisance))
             
 

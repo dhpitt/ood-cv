@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     categories = ['aeroplane', 'bicycle', 'boat', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train']
     targets = ['azimuth', 'theta', 'elevation', 'distance']
-    nuisance_types = ['occlusion', 'context','texture','shape','pose','weather']
+    #nuisance_types = ['occlusion', 'context', 'texture','shape','pose','weather']
     #targets = ['elevation', 'distance']
 
     for target in targets:
