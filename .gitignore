@@ -8,3 +8,7 @@
 ./second/checkpoints*
 ./second/.lr*
 ./second/pose*
+./second/lightning_logs
+*.zip
+*.csv
+*.ckpt
