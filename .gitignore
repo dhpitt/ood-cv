@@ -3,3 +3,8 @@
 ./NeMo/exp
 ./baseline/lightning_logs
 ./baseline/checkpoints
+*.jpg
+*.JPEG
+./second/checkpoints*
+./second/.lr*
+./second/pose*
