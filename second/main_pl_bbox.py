@@ -11,14 +11,14 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 import pandas as pd
 
-from dataset import PoseCategoryDataset, train_transforms, test_transforms, collate, collate_with_bboxcrop
-from model import SpecifiedResNet, SpecifiedResNetMLP, SpecifiedResNetMLP_Contrastive_Bbox, SpecifiedBaseResNetMLP
+from dataset import PoseCategoryDataset, PoseBboxCategoryDataset, train_transforms, test_transforms, collate, collate_with_bboxcrop
+from model import SpecifiedResNet, SpecifiedResNetMLP, SpecifiedResNetMLP_Contrastive_Bbox
 
 
 
 # constants
 
-BATCH_SIZE = 48
+BATCH_SIZE = 96
 EPOCHS     = 100
 LR         = 3e-6
 NUM_GPUS   = 1
@@ -36,7 +36,7 @@ class SupervisedLearner(pl.LightningModule):
             out_bins = 5 # each represents 10 units of dist
         elif target == 'elevation':
             out_bins = 6
-        self.learner = SpecifiedResNetMLP(out_bins=out_bins)
+        self.learner = SpecifiedResNetMLP_Contrastive_Bbox(out_bins=out_bins)
         self.save_hyperparameters(ignore=['net'])
 
     def forward(self, images):
@@ -70,29 +70,32 @@ if __name__ == '__main__':
                         help='path to your folder of training images')
     parser.add_argument('--val_root', type=str, required=True,\
                         help='path to your folder of validation images')
+    parser.add_argument('--anno_root', type=str, required=True,\
+                        help='path to your folder of scipy annotation files')
     args = parser.parse_args()
     print(args.train_root)
 
     categories = ['aeroplane', 'bicycle', 'boat', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train']
-    targets = ['azimuth', 'theta', 'elevation', 'distance']
+    #targets = ['azimuth', 'theta', 'elevation', 'distance']
+    targets = ['distance']
     #nuisance_types = ['occlusion', 'context','texture','shape','pose','weather']
 
     for target in targets:
         for category in categories:
             
             print('Now training category {} on target {}.'.format(category, target))
-            train_ds = PoseCategoryDataset(root=args.train_root, labels_name='train',\
-                 category=category, target=target, transforms=train_transforms)
-            val_ds = PoseCategoryDataset(root=args.val_root, labels_name='iid',\
-                 category=category, target=target, transforms=test_transforms)
+            train_ds = PoseBboxCategoryDataset(root=args.train_root, labels_name='train',\
+                 anno_root = args.anno_root, category=category, target=target, transforms=train_transforms)
+            val_ds = PoseBboxCategoryDataset(root=args.val_root, labels_name='iid',\
+                 anno_root = args.anno_root, category=category, target=target, transforms=test_transforms)
 
             train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS,
-                persistent_workers=True, shuffle=True, collate_fn=collate)
+                persistent_workers=True, shuffle=True, collate_fn=collate_with_bboxcrop)
             val_loader = DataLoader(val_ds, batch_size=8, num_workers=NUM_WORKERS,
-                persistent_workers=True, shuffle=False, collate_fn=collate)
+                persistent_workers=True, shuffle=False, collate_fn=collate_with_bboxcrop)
 
             # Checkpoint every epoch
-            checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath='./checkpoints_better_aug/{}_{}'.format(category, target), save_top_k=2, monitor='val_acc', mode='max')
+            checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath='./checkpoints_bbox/{}_{}'.format(category, target), save_top_k=2, monitor='val_acc', mode='max')
 
             trainer = pl.Trainer(
                 accelerator='gpu',

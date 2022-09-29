@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 import pandas as pd
 
-from model import SpecifiedResNet
+from model import SpecifiedResNet, SpecifiedResNetMLP
 
 from dataset import Phase2PoseDataset, test_transforms, collate
 
@@ -40,7 +40,7 @@ class SupervisedLearner(pl.LightningModule):
             out_bins = 5
         elif target == 'elevation':
             out_bins = 6
-        self.learner = SpecifiedResNet(out_bins=out_bins)
+        self.learner = SpecifiedResNetMLP(out_bins=out_bins)
         self.save_hyperparameters(ignore=['net'])
         self.df = pd.DataFrame({'imgs': [], 'data':[]})
 
@@ -64,14 +64,22 @@ if __name__ == '__main__':
 
     parser.add_argument('--test_root', type=str, required=True,\
                         help='path to your folder of testing images')
-    parser.add_argument('--ckpt', type=str, required=False,\
-        help='path to a saved model checkpoint')
+    parser.add_argument('--ckpt_dir', type=str, required=False,\
+        help='path to a folder of saved model checkpoints')
+    parser.add_argument('--label_dest', type=str, required=False,\
+        help='folder to save labels in')
+    
     args = parser.parse_args()
 
     categories = ['aeroplane', 'bicycle', 'boat', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train']
     targets = ['azimuth', 'theta', 'elevation', 'distance']
 
-    save_labels_root = './pose_res_noncontrastive/'
+    if args.label_dest is not None:
+        save_labels_root = f'./{args.label_dest}/'
+        if not os.path.isdir(save_labels_root):
+            os.mkdir(save_labels_root)
+    else:
+        save_labels_root = './pose_res_noncontrastive/'
 
     results = None
     for category in categories:
@@ -83,12 +91,12 @@ if __name__ == '__main__':
             test_loader = DataLoader(test_ds, batch_size=1, num_workers=NUM_WORKERS,
                 persistent_workers=True, shuffle=False, collate_fn=collate)
 
-            if args.ckpt is not None:
-                checkpoint_path = '{}/{}_{}/'.format(args.ckpt,category, target)
+            if args.ckpt_dir is not None:
+                checkpoint_path = './{}/{}_{}/'.format(args.ckpt_dir,category, target)
             else:
                 checkpoint_path = './checkpoints_mlp_lowdof/{}_{}/'.format(category, target)
             valid_checkpoints = os.listdir(checkpoint_path)
-            ckpt = checkpoint_path + valid_checkpoints[-1]
+            ckpt = checkpoint_path + valid_checkpoints[0]
 
             trainer = pl.Trainer(
                 accelerator='gpu',
