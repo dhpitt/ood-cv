@@ -1,9 +1,9 @@
-# ShapeNet Ensemble for 6D pose estimation:
+# Shape-biased Model Herd for 6D pose estimation:
 My submission to the pose estimation track of OOD-CV at ECCV2022
 
 ---
 
-I train an ensemble of ResNet50-backbone CNN classifiers to predict each axis of rotation on each category. They are first trained on ImageNet1K with Richard Geirhos' style transfer augmentations (strong augmentations which are explicitly allowed as per the contest guidelines), and then fine-tuned on the ROBIN dataset. I use a loss function that is a combination of classification loss (cross-entropy) and a contrastive term that pushes representations of images as close as possible to the same image cropped to its bounding box.
+I follow the direction of the Specified ResNet paper in the OOD-CV paper and treat pose estimation as a classification problem. To do this, I train a herd of ResNet50-backbone CNN classifiers - each model predicts one axis of rotation on a single category. They are first trained on ImageNet1K with Richard Geirhos' style transfer augmentations (strong augmentations which are explicitly allowed as per the contest guidelines), and then fine-tuned on the ROBIN dataset. I use a loss function that is a combination of classification loss (cross-entropy) and a contrastive term that pushes representations of images as close as possible to the same image cropped to its bounding box.
 
 ---
 
