@@ -72,12 +72,14 @@ if __name__ == '__main__':
                         help='path to your folder of validation images')
     parser.add_argument('--anno_root', type=str, required=True,\
                         help='path to your folder of scipy annotation files')
+    parser.add_argument('--ckpt_dir', type=str, required=False,\
+                        help='path to your folder of model checkpoints')
+
     args = parser.parse_args()
     print(args.train_root)
 
     categories = ['aeroplane', 'bicycle', 'boat', 'bus', 'car', 'chair', 'diningtable', 'motorbike', 'sofa', 'train']
-    #targets = ['azimuth', 'theta', 'elevation', 'distance']
-    targets = ['distance']
+    targets = ['azimuth', 'theta', 'elevation', 'distance']
     #nuisance_types = ['occlusion', 'context','texture','shape','pose','weather']
 
     for target in targets:
@@ -94,10 +96,28 @@ if __name__ == '__main__':
             val_loader = DataLoader(val_ds, batch_size=8, num_workers=NUM_WORKERS,
                 persistent_workers=True, shuffle=False, collate_fn=collate_with_bboxcrop)
 
-            # Checkpoint every epoch
-            checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath='./checkpoints_bbox/{}_{}'.format(category, target), save_top_k=2, monitor='val_acc', mode='max')
-
-            trainer = pl.Trainer(
+            
+            
+            if args.ckpt_dir is not None:
+                ckpt_dir = './{}/{}_{}/'.format(args.ckpt_dir,category, target)
+                valid_checkpoints = os.listdir(ckpt_dir)
+                ckpt = ckpt_dir + valid_checkpoints[0]
+                print(ckpt)
+                model=SupervisedLearner(target=target).load_from_checkpoint(ckpt)
+                checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath='./checkpoints_bbox_more_training/{}_{}'.format(category, target), save_top_k=1, monitor='loss')
+                trainer = pl.Trainer(
+                accelerator='gpu',
+                devices=NUM_GPUS,
+                max_epochs=EPOCHS//2,
+                accumulate_grad_batches=1,
+                sync_batchnorm=True,
+                callbacks=[checkpoint_callback],
+                log_every_n_steps=10
+                )
+            else:
+                model = SupervisedLearner(target=target)
+                checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath='./checkpoints_bbox/{}_{}'.format(category, target), save_top_k=2, monitor='val_acc', mode='max')
+                trainer = pl.Trainer(
                 accelerator='gpu',
                 devices=NUM_GPUS,
                 max_epochs=EPOCHS,
@@ -105,10 +125,7 @@ if __name__ == '__main__':
                 sync_batchnorm=True,
                 callbacks=[checkpoint_callback],
                 log_every_n_steps=10
-            )
-            
-            
-            model = SupervisedLearner(target=target)
+                )
 
             lr_finder = trainer.tuner.lr_find(model=model,train_dataloaders=train_loader)
             new_lr = lr_finder.suggestion()

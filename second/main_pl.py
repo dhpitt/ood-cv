@@ -92,7 +92,7 @@ if __name__ == '__main__':
                 persistent_workers=True, shuffle=False, collate_fn=collate)
 
             # Checkpoint every epoch
-            checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath='./checkpoints_better_aug/{}_{}'.format(category, target), save_top_k=2, monitor='val_acc', mode='max')
+            checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath='./checkpoints_even_more_aug/{}_{}'.format(category, target), save_top_k=2, monitor='val_acc', mode='max')
 
             trainer = pl.Trainer(
                 accelerator='gpu',

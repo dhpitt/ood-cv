@@ -187,14 +187,23 @@ class Phase2PoseDataset(Dataset):
     def __len__(self):  
         return len(self.images)
 
+# Even more augmentations!
 train_transforms = tvt.Compose([
     tvt.ToTensor(),
     tvt.Resize([224, 224]),
-    tvt.GaussianBlur(kernel_size=(5, 5), sigma=(2.5,2.5)),
-    tvt.ColorJitter(brightness=.1, hue=.3),
+    tvt.GaussianBlur(kernel_size=(5, 5), sigma=(4,4)),
+    tvt.ColorJitter(brightness=.2, hue=.4),
     tvt.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 
     ])
+# train_transforms = tvt.Compose([
+#     tvt.ToTensor(),
+#     tvt.Resize([224, 224]),
+#     tvt.GaussianBlur(kernel_size=(5, 5), sigma=(2.5,2.5)),
+#     tvt.ColorJitter(brightness=.1, hue=.3),
+#     tvt.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+
+#     ])
 
 test_transforms = tvt.Compose([
     tvt.ToTensor(),
